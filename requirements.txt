@@ -1,3 +1,1 @@
-keras
-numpy
-jupyterlab
+tensorflow==2.5.0

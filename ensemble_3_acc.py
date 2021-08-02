@@ -82,12 +82,15 @@ def compile_and_train(model: training.Model,
     model.compile(loss=categorical_crossentropy,
                   optimizer=Adam(), metrics=['acc'])
     filepath = 'weights/' + model.name + '.{epoch:02d}-{loss:.2f}.hdf5'
-    checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=0, save_weights_only=True,
+    checkpoint = ModelCheckpoint(filepath, monitor='loss', verbose=0,
+                                 save_weights_only=True,
                                  save_best_only=True, mode='auto', period=1)
     tensor_board = TensorBoard(
         log_dir='logs/', histogram_freq=0, batch_size=32)
     history = model.fit(x=x_train, y=y_train, batch_size=32,
-                        epochs=num_epochs, verbose=1, callbacks=[checkpoint, tensor_board], validation_split=0.2)
+                        epochs=num_epochs, verbose=1, 
+                        callbacks=[checkpoint, tensor_board], 
+                        validation_split=0.2)
     weight_files = glob.glob(os.path.join(os.getcwd(), 'weights/*'))
     weight_file = max(weight_files, key=os.path.getctime)  # most recent file
     return history, weight_file
@@ -97,21 +100,22 @@ _, conv_pool_cnn_weight_file = compile_and_train(conv_pool_cnn_model,
                                                  NUM_EPOCHS)
 
 
-def evaluate_error(model: training.Model) -> np.float64:
-    pred = model.predict(x_test, batch_size=32)
-    pred = np.argmax(pred, axis=1)
-    pred = np.expand_dims(pred, axis=1)  # make same shape as y_test
-    error = np.sum(np.not_equal(pred, y_test)) / y_test.shape[0]
-    return error
+def evaluate_acc(model: training.Model) -> np.float64:
+    y_pred = model.predict(x_test, batch_size=32)
+    y_pred = np.argmax(y_pred, axis=1)
+    y_pred = np.expand_dims(y_pred, axis=1)
+    # acc = sum([y_pred[i] == y_test[i] for i in range(y_test)])/len(y_test)
+    acc  = np.sum(np.equal(y_pred, y_test)) / y_test.shape[0]
+    return acc
 
 
 try:
     conv_pool_cnn_weight_file
 except NameError:
     conv_pool_cnn_model.load_weights(CONV_POOL_CNN_WEIGHT_FILE)
-error_1 = evaluate_error(conv_pool_cnn_model)
+acc_1 = evaluate_acc(conv_pool_cnn_model)
 
-print("Error model 1: ", error_1)
+print("Accuracy model 1: ", acc_1)
 
 
 # Second model
@@ -143,8 +147,9 @@ try:
     all_cnn_weight_file
 except NameError:
     all_cnn_model.load_weights(ALL_CNN_WEIGHT_FILE)
-error_2 = evaluate_error(all_cnn_model)
-print("Error model 2: ", error_2)
+acc_2 = evaluate_acc(all_cnn_model)
+
+print("Accuracy model 2: ", acc_2)
 
 
 def nin_cnn(model_input: Tensor) -> training.Model:
@@ -183,8 +188,9 @@ try:
     nin_cnn_weight_file
 except NameError:
     nin_cnn_model.load_weights(NIN_CNN_WEIGHT_FILE)
-error_3 = evaluate_error(nin_cnn_model)
-print("Error moel 3: ", error_3)
+acc_3 = evaluate_acc(nin_cnn_model)
+
+print("Accuracy model 3: ", acc_3)
 
 
 def ensemble(models: List[training.Model],
@@ -215,5 +221,6 @@ except NameError:
 # ensemble three models
 models = [conv_pool_cnn_model, all_cnn_model, nin_cnn_model]
 ensemble_model = ensemble(models, model_input)
-error_123 = evaluate_error(ensemble_model)
-print("Error model ensemble (123): ", error_123)
+acc_123 = evaluate_acc(ensemble_model)
+
+print("Accuracy model ensemble (123): ", acc_123)

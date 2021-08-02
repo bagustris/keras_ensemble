@@ -1,3 +1,5 @@
 /tensorboard_plots
 /.ipynb_checkpoints
 /logs
+/weights
+
